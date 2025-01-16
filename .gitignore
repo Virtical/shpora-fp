@@ -197,3 +197,6 @@ FakesAssemblies/
 *.opt
 
 *Solved.cs
+
+# Desktop icon
+desktop.ini
