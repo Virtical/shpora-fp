@@ -17,9 +17,6 @@ public class CircularCloudLayouterVisualizer
     
     public Result<CircularCloudLayouterVisualizer> SaveImage(string filePath)
     {
-        if (string.IsNullOrWhiteSpace(filePath))
-            return Result.Fail<CircularCloudLayouterVisualizer>("File path cannot be null or whitespace.");
-        
         try
         {
             using var bitmap = new Bitmap(size.Width, size.Height);

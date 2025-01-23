@@ -11,8 +11,8 @@ public class WordProcessor
 
     public WordProcessor(Dictionary<string, IParser> handlers, ExcludedWordsSettings settings)
     {
-        parsers = handlers ?? throw new ArgumentNullException(nameof(handlers));
-        this.settings = settings ?? throw new ArgumentNullException(nameof(settings));
+        parsers = handlers;
+        this.settings = settings;
     }
 
     public Result<WordProcessor> GetWordsForCloud(string wordsPath)
@@ -52,8 +52,6 @@ public class WordProcessor
         {
             if (settings.EnableDefaultExclude)
             {
-                string workingDirectory = Directory.GetCurrentDirectory();
-                
                 if (!File.Exists(settings.DefaultExcludedWordsPath))
                     return Result.Fail<Dictionary<string, int>>("Default excluded words file does not exist.");
 

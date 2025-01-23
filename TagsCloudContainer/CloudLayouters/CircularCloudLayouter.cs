@@ -9,9 +9,10 @@ public class CircularCloudLayouter
     public List<Tag> Tags { get; }
     public (Color Primary, Color? Secondary)? BackgroundColor { get; private set; }
     public (Color Primary, Color? Secondary)? TextColor { get; private set; }
+    public IRectangleMeasurer RectangleMeasurer { get; set; }
+    
     private string? FontName { get; set; }
     private readonly RectangleArranger arranger;
-    public IRectangleMeasurer RectangleMeasurer { get; set; }
 
     public CircularCloudLayouter(Point center, ISpiral spiral)
     {
@@ -72,9 +73,9 @@ public class CircularCloudLayouter
         return Result.Ok(this);
     }
 
-    public Result<Rectangle> PutNextTag(string text, int count)
+    public Result<Rectangle> PutNextTag(string text, int sizeCoefficient)
     {
-        if (count < 1)
+        if (sizeCoefficient < 1)
             return Result.Fail<Rectangle>("Count must be greater than zero.");
 
         if (string.IsNullOrWhiteSpace(text))
@@ -82,7 +83,7 @@ public class CircularCloudLayouter
 
         try
         {
-            var font = new Font(FontName ?? "Arial", count * 6 + 10);
+            var font = new Font(FontName ?? "Arial", sizeCoefficient * 6 + 10);
             var rectangleSize = RectangleMeasurer.Measure(text, font);
 
             var rectangle = arranger.ArrangeRectangle(rectangleSize, Center);

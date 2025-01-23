@@ -13,11 +13,15 @@ public static class App
     private static string defaultFontName = "Arial";
     private static Color defaultBackgroundColor = Color.White;
     private static Color defaultTextColor = Color.Black;
-    private static string defaultWordsFilePath = Path.Combine("..", "..", "..", "WordProcessing", "cloud.txt");
-    private static string defaultExcludedWordsFilePath = Path.Combine("..", "..", "..", "WordProcessing", "excluded_words.txt");
+    private static string defaultWordsFilePath = Path.Combine("..", "..", "..", "DefaultWords", "cloud.txt");
+    private static string defaultSaveFileName = "cloud.png";
+    private static string defaultExcludedWordsFilePath = Path.Combine("..", "..", "..", "DefaultWords", "excluded_words.txt");
+    
+    private static readonly string[] validExtensions = [".png", ".jpeg", ".tiff", ".bmp"];
 
     private static readonly string imageDimensionsPrompt = $"Введите размер изображения (по умолчанию W: {defaultImageWidth}, H: {defaultImageHeight}):";
     private static readonly string fileNamePrompt = "Введите название файла с текстом:";
+    private static readonly string saveFileNamePrompt = $"Введите название сохраняемого файла, по умолчанию {defaultSaveFileName}):";
     private static readonly string excludedWordsFileNamePrompt = "Введите название файла с исключёнными словами:";
     private static readonly string fontNamePrompt = $"Введите название шрифта (по умолчанию {defaultFontName}):";
     private static readonly string backgroundColorPrompt = $"Введите цвет фона (по умолчанию {defaultBackgroundColor.Name}):";
@@ -53,12 +57,6 @@ public static class App
             Console.WriteLine(prompt);
             var input = Console.ReadLine();
 
-            if (!string.IsNullOrEmpty(input) && File.Exists(input))
-            {
-                Console.Clear();
-                return input;
-            }
-
             switch (input)
             {
                 case ExitCommand:
@@ -68,10 +66,50 @@ public static class App
                     Console.Clear();
                     return defaultPath;
             }
+            
+            if (!string.IsNullOrEmpty(input) && File.Exists(input))
+            {
+                Console.Clear();
+                return input;
+            }
 
             Console.Clear();
             ShowExitMessage();
             Console.WriteLine("Файл не найден. Попробуйте снова.");
+        }
+    }
+    
+    public static string GetSaveFileNameFromUser()
+    {
+        ShowExitMessage();
+
+        while (true)
+        {
+            Console.WriteLine(saveFileNamePrompt);
+            Console.WriteLine($"(доступные форматы: [{string.Join(", ", validExtensions)}])");
+            var input = Console.ReadLine();
+            
+            switch (input)
+            {
+                case ExitCommand:
+                    Environment.Exit(0);
+                    break;
+                case DefaultCommand:
+                    Console.Clear();
+                    return defaultSaveFileName;
+            }
+            
+            var extension = Path.GetExtension(input)?.ToLower();
+
+            if (!string.IsNullOrEmpty(input) && Array.Exists(validExtensions, ext => ext.Equals(extension)))
+            {
+                Console.Clear();
+                return input;
+            }
+
+            Console.Clear();
+            ShowExitMessage();
+            Console.WriteLine("Неверное название файла. Попробуйте снова.");
         }
     }
     
@@ -171,47 +209,65 @@ public static class App
                     Console.Clear();
                     return (defaultColor, null);
             }
-            
-            var colorInputs = input?.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
-            if (colorInputs is { Length: > 0 })
-            {
-                try
-                {
-                    var primaryColor = ParseColor(colorInputs[0].Trim());
-                    
-                    if (colorInputs.Length > 1)
-                    {
-                        var secondaryColor = ParseColor(colorInputs[1].Trim());
-                        Console.Clear();
-                        return (primaryColor, secondaryColor);
-                    }
-                    
-                    Console.Clear();
-                    return (primaryColor, null);
-                }
-                catch (ArgumentException ex)
-                {
-                    Console.Clear();
-                    ShowExitMessage();
-                    Console.WriteLine(ex.Message);
-                    continue;
-                }
-            }
-
-            Console.Clear();
-            ShowExitMessage();
-            Console.WriteLine("Некорректное значение. Попробуйте снова.");
+            if (TryParseColors(input, out var colors))
+                return colors;
         }
     }
     
-    private static Color ParseColor(string input)
+    private static bool TryParseColors(string? input, out (Color Primary, Color? Secondary) result)
+    {
+        result = default;
+
+        var colorInputs = input?.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        if (colorInputs is not { Length: > 0 })
+        {
+            ShowErrorMessage("Некорректное значение. Попробуйте снова.");
+            return false;
+        }
+        
+        var primaryResult = ParseColor(colorInputs[0].Trim());
+        if (!primaryResult.IsSuccess)
+        {
+            ShowErrorMessage(primaryResult.Error);
+            return false;
+        }
+
+        if (colorInputs.Length > 1)
+        {
+            var secondaryResult = ParseColor(colorInputs[1].Trim());
+            if (!secondaryResult.IsSuccess)
+            {
+                ShowErrorMessage(secondaryResult.Error);
+                return false;
+            }
+
+            Console.Clear();
+            result = (primaryResult.Value, secondaryResult.Value);
+            return true;
+        }
+
+        Console.Clear();
+        result = (primaryResult.Value, null);
+        return true;
+
+    }
+    
+    private static void ShowErrorMessage(string error)
+    {
+        Console.Clear();
+        ShowExitMessage();
+        Console.WriteLine(error);
+    }
+    
+    private static Result<Color> ParseColor(string input)
     {
         if (Enum.TryParse(input, true, out KnownColor knownColor))
         {
-            return Color.FromKnownColor(knownColor);
+            return Result.Ok(Color.FromKnownColor(knownColor));
         }
-
-        throw new ArgumentException($"Некорректное название цвета: {input}");
+        
+        return Result.Fail<Color>($"Invalid color name: '{input}'");
     }
 }
